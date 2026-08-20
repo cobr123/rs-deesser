@@ -1,0 +1,27 @@
+# Static build configuration.
+#
+# The musl target links the C library into the executable, so the result has no
+# runtime dependencies at all: no dynamic loader, no libc, no distribution
+# specific paths.  Such a binary can be copied to any machine with the same CPU
+# architecture and simply run, whatever its distribution or glibc version is.
+#
+#     cargo build-static
+#     scp target/x86_64-unknown-linux-musl/release/rs-deesser other-host:
+#
+# The ordinary `cargo build` and `cargo test` are not affected by anything in
+# this file - they still build a dynamically linked binary for the host.
+
+[alias]
+# Convenience wrappers so the target does not have to be typed every time.
+build-static = "build --release --target x86_64-unknown-linux-musl"
+test-static = "test --release --target x86_64-unknown-linux-musl"
+
+[target.x86_64-unknown-linux-musl]
+# Static linking of the C runtime is the default for musl targets; stating it
+# explicitly documents the intent and protects against the default changing.
+#
+# Note what is deliberately *not* here: `-C target-cpu=...`.  The default is
+# the baseline x86-64 instruction set, so the binary runs on every x86-64 CPU.
+# Adding `target-cpu=native` would tune it for this machine's CPU and it could
+# then die with SIGILL on an older one.
+rustflags = ["-C", "target-feature=+crt-static"]

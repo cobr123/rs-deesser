@@ -1,0 +1,23 @@
+[package]
+name = "rs-deesser"
+version = "0.1.0"
+edition = "2021"
+description = "Streaming de-esser for 16-bit mono 44100 Hz WAV files"
+
+# No dependencies on purpose.  The WAV container, the sample pipeline and all
+# of the signal processing are implemented from scratch in this crate, so that
+# the whole algorithm can be read in one place.
+[dependencies]
+
+[profile.release]
+# The detector runs ~2800 multiply-accumulates per input sample, which is
+# comfortably real time when optimised, and painfully slow in a debug build.
+opt-level = 3
+# Settings aimed at the binary that gets copied to another machine: whole
+# program optimisation, a single code generation unit, and no symbol table.
+lto = true
+codegen-units = 1
+strip = "symbols"
+# Note that panics stay unwinding on purpose: the ring buffer invariant is
+# checked with `assert!`, and a readable message is worth more than the few
+# kilobytes `panic = "abort"` would save.
