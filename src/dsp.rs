@@ -138,8 +138,6 @@ pub fn design_band_pass(sample_rate: f64, band_lo: f64, band_hi: f64) -> BandPas
 pub struct Fir {
     taps: Vec<f32>,
     history: Vec<f32>,
-    /// Index in `history` where the newest sample is stored.
-    newest: usize,
 }
 
 impl Fir {
@@ -149,26 +147,18 @@ impl Fir {
         Fir {
             taps,
             history,
-            newest: 0,
         }
     }
 
     /// Feeds one sample and returns one output sample.
     pub fn process(&mut self, sample: f32) -> f32 {
-        let len = self.history.len();
-        self.history[self.newest] = sample;
+        self.history.rotate_right(1);
+        self.history[0] = sample;
 
         // Walk the taps forwards and the history backwards in time.
-        let mut acc = 0.0f32;
-        let mut index = self.newest;
-        for &tap in &self.taps {
-            acc += tap * self.history[index];
-            index = if index == 0 { len - 1 } else { index - 1 };
-        }
-
-        self.newest = if self.newest + 1 == len { 0 } else { self.newest + 1 };
-        acc
+        self.taps.iter().zip(self.history.iter()).map(|(x, y)| x * y).sum()
     }
+
 }
 
 // ---------------------------------------------------------------------------
