@@ -9,7 +9,7 @@
 //! more sensitive to rounding.
 
 use std::f64::consts::PI;
-
+use wide::f32x8;
 // ---------------------------------------------------------------------------
 // Window function
 // ---------------------------------------------------------------------------
@@ -156,7 +156,34 @@ impl Fir {
         self.history[0] = sample;
 
         // Walk the taps forwards and the history backwards in time.
-        self.taps.iter().zip(self.history.iter()).map(|(x, y)| x * y).sum()
+        Fir::simd_mult_and_sum(self.taps.as_slice(), self.history.as_slice())
+    }
+
+    pub fn simd_mult_and_sum(a: &[f32], b: &[f32]) -> f32 {
+        assert_eq!(a.len(), b.len());
+
+        // Chunk your slices into 8-element segments using stable 'as_chunks'
+        let (a_chunks, a_remainder) = a.as_chunks::<8>();
+        let (b_chunks, b_remainder) = b.as_chunks::<8>();
+
+        let mut sum_vector = f32x8::ZERO;
+
+        // 1. SIMD Loop: Multiplies 8 lanes at once and accumulates vertically
+        for (a_chunk, b_chunk) in a_chunks.iter().zip(b_chunks.iter()) {
+            let va = f32x8::from(*a_chunk);
+            let vb = f32x8::from(*b_chunk);
+            sum_vector += va * vb;
+        }
+
+        // 2. Horizontal Reduction: Sum all lanes inside the SIMD vector
+        let mut total_sum: f32 = sum_vector.to_array().iter().sum();
+
+        // 3. Clean up leftover elements (if array size is not a multiple of 8)
+        for (x, y) in a_remainder.iter().zip(b_remainder.iter()) {
+            total_sum += x * y;
+        }
+
+        total_sum
     }
 
 }
