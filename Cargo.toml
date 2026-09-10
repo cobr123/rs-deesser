@@ -8,7 +8,7 @@ description = "Streaming de-esser for 16-bit mono 44100 Hz WAV files"
 # of the signal processing are implemented from scratch in this crate, so that
 # the whole algorithm can be read in one place.
 [dependencies]
-wide = "0.7"
+wide = "1.7.0"
 
 [profile.release]
 # The detector runs ~2800 multiply-accumulates per input sample, which is
